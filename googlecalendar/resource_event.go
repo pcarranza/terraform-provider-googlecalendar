@@ -3,6 +3,7 @@ package googlecalendar
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -15,6 +16,8 @@ var (
 	eventValidMethods = []string{"email", "popup", "sms"}
 
 	eventValidVisbilities = []string{"public", "private"}
+
+	allDayMatcher = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}$")
 )
 
 func resourceEvent() *schema.Resource {
@@ -309,12 +312,9 @@ func resourceEventBuild(d *schema.ResourceData, meta interface{}) (*calendar.Eve
 	}
 	event.Transparency = boolToTransparency(showAsAvailable)
 	event.Visibility = visibility
-	event.Start = &calendar.EventDateTime{
-		Date: start,
-	}
-	event.End = &calendar.EventDateTime{
-		Date: end,
-	}
+
+	event.Start = dateOrDateTime(start)
+	event.End = dateOrDateTime(end)
 
 	// Parse reminders
 	remindersRaw := d.Get("reminder").(*schema.Set)
@@ -409,5 +409,16 @@ func transparencyToBool(s string) bool {
 	default:
 		log.Printf("[WARN] unknown transparency %q", s)
 		return false
+	}
+}
+
+func dateOrDateTime(value string) *calendar.EventDateTime {
+	if allDayMatcher.MatchString(value) {
+		return &calendar.EventDateTime{
+			Date: value,
+		}
+	}
+	return &calendar.EventDateTime{
+		DateTime: value,
 	}
 }
