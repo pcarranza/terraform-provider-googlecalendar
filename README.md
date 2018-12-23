@@ -46,24 +46,33 @@ choose "server-to-server" communication, since this is not an OAuth application.
     Note: if you are making your own service account, be sure to grant access to
     the "calendar" OAuth scope!
 
-1. Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to your newly-downloaded credentials file:
+1. Set the `CALENDAR_CREDENTIALS_FILE` environment variable to point to your newly-downloaded credentials file:
 
     ```sh
-    $ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/my-creds.json
+    $ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
     ```
 
     The Terraform provider automatically reads this environment variable and
     uses the file at the given path for authentication.
 
+1. Set the `CALENDAR_OAUTH2_TOKEN_FILE` environment variable to point to your personal token file obtained following [this](https://developers.google.com/calendar/quickstart/go) instructions.
+
+
 1. Create a Terraform configuration file:
 
     ```hcl
     resource "googlecalendar_event" "example" {
+
+      // The calendar_id is optional, it can be used to manage other calendar
+      // than the user primary. Use it when managing a shared calendar.
+      calendar_id = "primary"
+
       summary     = "My Event"
       description = "Long-form description of the event"
       location    = "Conference Room B"
 
       // Start and end times work best if specified as RFC3339.
+      // To specify a full day event, use "2017-10-12" format.
       start = "2017-10-12T15:00:00-05:00"
       end   = "2017-10-12T17:00:00-05:00"
 
@@ -107,11 +116,16 @@ Arguments are provided as inputs to the resource, in the `*.tf` file.
 
 - `summary` `(string, required)` - the "title" of the event.
 
+- `calendar_id` `(string, optiona)` - the calendar id in which to manage the
+  events. Optional, _primary_ by default.
+
 - `start` `(string, required)` - the RFC3339-formatted start time of the event
-  _with the timestamp included_.
+  _with the timestamp included_ if it is a DateTime, only the date part to
+  define a full day event.
 
 - `end` `(string, required)` - the RFC3339-formatted end time of the event _with
-  the timestamp included_.
+  the timestamp included_ if it is a DateTime, only the date part to
+  define a full day event.
 
 - `description` `(string)` - the long-form description of the event. This can be
   multiple paragraphs using Terraform's heredoc syntax.
@@ -182,35 +196,7 @@ Attributes are values that are only known after creation.
 - `html_link` `(string)` - the HTTP web link to the calendar invite on
   [calendar.google.com](https://calendar.google.com/).
 
-
 ## Constraints & Understanding
-
-### Architecture
-
-It is important to note that you are not creating an event on a person's
-calendar - that is not permitted. Can you imagine if anyone with a Google Cloud
-account could put events on your calendar!? Instead, you are creating an event
-on the service account's calendar and then inviting the appropriate attendees to
-that event. In this way, Terraform acts as a "robot" which invites people to an
-event.
-
-### Time
-
-A good future enhancement is to allow "human" times. Right now, all times _must_
-be specified in RFC3339 format. It would be great to allow arbitrary human times
-like "Oct 13, 2017 at 4pm EST".
-
-### Reality?
-
-Anytime we look at a software project, we have to ask ourselves - should I
-actually do this? Should I actually manage my Google Calendar events as code.
-The answer - probably not. However, this repository showcases that almost
-anything is possible with Terraform.
-
-## License & Author
-
-This project is licensed under the MIT license by Seth Vargo
-(seth@sethvargo.com).
 
 [terraform]: https://www.terraform.io/
 [releases]: https://github.com/sethvargo/terraform-provider-googlecalendar/releases
